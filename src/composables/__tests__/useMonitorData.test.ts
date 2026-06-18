@@ -291,14 +291,14 @@ describe('useMonitorData - 边界与补充场景', () => {
     while (data.overloadModal.visible) {
       dismissedIds.push(data.overloadModal.areaId)
       closeOverloadModal('dismiss')
-      vi.advanceTimersByTime(6000)
+      vi.advanceTimersByTime(4000)
       if (dismissedIds.length > 10) break
     }
     const allOverloaded = data.overloadedAreas.value.map(a => a.id)
     dismissedIds.forEach(id => {
       expect(allOverloaded).toContain(id)
     })
-    vi.advanceTimersByTime(20000)
+    vi.advanceTimersByTime(4000)
     expect(data.overloadModal.visible).toBe(false)
     wrapper.unmount()
   })
@@ -318,6 +318,65 @@ describe('useMonitorData - 边界与补充场景', () => {
         })
       }
     }
+    wrapper.unmount()
+  })
+})
+
+describe('useMonitorData - 昨日客流数据对比', () => {
+  it('yesterdayFlowData 长度与 flowData 一致', () => {
+    const { data, wrapper } = mountComposable()
+    expect(data.yesterdayFlowData.value.length).toBe(data.flowData.value.length)
+    wrapper.unmount()
+  })
+
+  it('yesterdayFlowData 每个时段 hour 字段与 flowData 对齐', () => {
+    const { data, wrapper } = mountComposable()
+    data.flowData.value.forEach((d, i) => {
+      expect(data.yesterdayFlowData.value[i]?.hour).toBe(d.hour)
+    })
+    wrapper.unmount()
+  })
+
+  it('yesterdayFlowData 数值为非负整数', () => {
+    const { data, wrapper } = mountComposable()
+    data.yesterdayFlowData.value.forEach(d => {
+      expect(Number.isInteger(d.enterCount)).toBe(true)
+      expect(Number.isInteger(d.exitCount)).toBe(true)
+      expect(Number.isInteger(d.inParkCount)).toBe(true)
+      expect(d.enterCount).toBeGreaterThanOrEqual(0)
+      expect(d.exitCount).toBeGreaterThanOrEqual(0)
+      expect(d.inParkCount).toBeGreaterThanOrEqual(0)
+    })
+    wrapper.unmount()
+  })
+
+  it('yesterdayPeakHour 返回昨日数据中 inParkCount 最高的时段', () => {
+    const { data, wrapper } = mountComposable()
+    if (data.yesterdayFlowData.value.length > 0) {
+      const expected = data.yesterdayFlowData.value.reduce(
+        (p, c) => (c.inParkCount > p.inParkCount ? c : p)
+      )
+      expect(data.yesterdayPeakHour.value).toBe(expected.hour)
+    }
+    wrapper.unmount()
+  })
+
+  it('yesterdayFlowData 与 flowData 同时段存在差异（模拟值非完全相等）', () => {
+    const { data, wrapper } = mountComposable()
+    let diffCount = 0
+    data.flowData.value.forEach((d, i) => {
+      const y = data.yesterdayFlowData.value[i]
+      if (y && y.inParkCount !== d.inParkCount) diffCount++
+    })
+    expect(diffCount).toBeGreaterThan(0)
+    wrapper.unmount()
+  })
+
+  it('yesterdayFlowData 始终包含 06:00 至 21:00 共 16 个小时时段', () => {
+    const { data, wrapper } = mountComposable()
+    expect(data.yesterdayFlowData.value.length).toBe(16)
+    expect(data.yesterdayFlowData.value[0]?.hour).toBe('06:00')
+    expect(data.yesterdayFlowData.value[15]?.hour).toBe('21:00')
     wrapper.unmount()
   })
 })

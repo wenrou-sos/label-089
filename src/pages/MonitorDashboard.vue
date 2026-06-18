@@ -112,7 +112,7 @@
               <span>峰值时段：<span class="text-yellow-400">{{ peakHour }}</span></span>
             </div>
           </div>
-          <FlowTrendChart :data="flowData" :peak-hour="peakHour" :enter-peak-hour="enterPeakHour" />
+          <FlowTrendChart :data="flowData" :yesterday-data="yesterdayFlowData" :peak-hour="peakHour" :enter-peak-hour="enterPeakHour" />
         </div>
       </main>
 
@@ -244,11 +244,13 @@ const {
   queues,
   parking,
   flowData,
+  yesterdayFlowData,
   weatherAlerts,
   currentTime,
   overloadModal,
   overloadedAreas,
   peakHour,
+  yesterdayPeakHour,
   enterPeakHour,
   totalInPark,
   closeOverloadModal,

@@ -71,29 +71,47 @@ const PARKING: ParkingLot[] = [
   { id: 'p4', name: 'P4 备用停车场', total: 300, remaining: 290 },
 ]
 
-function generateFlowData(): FlowDataPoint[] {
+function generateFlowData(seed?: number): FlowDataPoint[] {
   const data: FlowDataPoint[] = []
   let inPark = 0
+  let rng = Math.random
+  if (seed !== undefined) {
+    let s = seed
+    rng = () => {
+      s = (s * 9301 + 49297) % 233280
+      return s / 233280
+    }
+  }
   for (let h = 6; h <= 21; h++) {
     const hour = `${h.toString().padStart(2, '0')}:00`
     let enter: number, exit: number
     if (h >= 6 && h <= 9) {
-      enter = Math.floor(200 + Math.random() * 400)
-      exit = Math.floor(20 + Math.random() * 50)
+      enter = Math.floor(200 + rng() * 400)
+      exit = Math.floor(20 + rng() * 50)
     } else if (h >= 10 && h <= 12) {
-      enter = Math.floor(100 + Math.random() * 200)
-      exit = Math.floor(50 + Math.random() * 100)
+      enter = Math.floor(100 + rng() * 200)
+      exit = Math.floor(50 + rng() * 100)
     } else if (h >= 13 && h <= 15) {
-      enter = Math.floor(50 + Math.random() * 100)
-      exit = Math.floor(80 + Math.random() * 150)
+      enter = Math.floor(50 + rng() * 100)
+      exit = Math.floor(80 + rng() * 150)
     } else {
-      enter = Math.floor(10 + Math.random() * 30)
-      exit = Math.floor(150 + Math.random() * 300)
+      enter = Math.floor(10 + rng() * 30)
+      exit = Math.floor(150 + rng() * 300)
     }
     inPark = Math.max(0, inPark + enter - exit)
     data.push({ hour, enterCount: enter, exitCount: exit, inParkCount: inPark })
   }
   return data
+}
+
+function generateYesterdayFlowData(todayData: FlowDataPoint[]): FlowDataPoint[] {
+  return todayData.map(d => {
+    const factor = 0.75 + Math.random() * 0.5
+    const enterCount = Math.round(d.enterCount * factor)
+    const exitCount = Math.round(d.exitCount * (0.8 + Math.random() * 0.4))
+    const inParkCount = Math.max(0, Math.round(d.inParkCount * (0.7 + Math.random() * 0.55)))
+    return { hour: d.hour, enterCount, exitCount, inParkCount }
+  })
 }
 
 const WEATHER_ALERTS: WeatherAlert[] = [
@@ -128,6 +146,7 @@ export function useMonitorData() {
   const queues = reactive<QueueInfo[]>(QUEUES.map(q => ({ ...q })))
   const parking = reactive<ParkingLot[]>(PARKING.map(p => ({ ...p })))
   const flowData = ref<FlowDataPoint[]>(generateFlowData())
+  const yesterdayFlowData = ref<FlowDataPoint[]>(generateYesterdayFlowData(flowData.value))
   const weatherAlerts = reactive<WeatherAlert[]>(WEATHER_ALERTS.map(w => ({ ...w })))
   const currentTime = ref(new Date())
   const overloadModal = reactive({
@@ -156,6 +175,14 @@ export function useMonitorData() {
     if (!flowData.value.length) return '--'
     const max = flowData.value.reduce((prev, curr) =>
       curr.enterCount > prev.enterCount ? curr : prev
+    )
+    return max.hour
+  })
+
+  const yesterdayPeakHour = computed(() => {
+    if (!yesterdayFlowData.value.length) return '--'
+    const max = yesterdayFlowData.value.reduce((prev, curr) =>
+      curr.inParkCount > prev.inParkCount ? curr : prev
     )
     return max.hour
   })
@@ -247,12 +274,14 @@ export function useMonitorData() {
     queues,
     parking,
     flowData,
+    yesterdayFlowData,
     weatherAlerts,
     currentTime,
     overloadModal,
     overloadedAreas,
     peakHour,
     enterPeakHour,
+    yesterdayPeakHour,
     totalInPark,
     closeOverloadModal,
     dismissWeatherAlert,
