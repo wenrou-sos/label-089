@@ -214,13 +214,13 @@
             </div>
             <div class="flex gap-3">
               <button
-                @click="closeOverloadModal"
+                @click="closeOverloadModal('limit')"
                 class="flex-1 px-4 py-2 rounded-lg bg-red-500/20 border border-red-500/40 text-red-400 font-medium text-sm hover:bg-red-500/30 transition-colors"
               >
                 立即启动限流
               </button>
               <button
-                @click="closeOverloadModal"
+                @click="closeOverloadModal('dismiss')"
                 class="flex-1 px-4 py-2 rounded-lg bg-slate-700/50 border border-slate-600/40 text-gray-300 font-medium text-sm hover:bg-slate-700/70 transition-colors"
               >
                 暂时忽略

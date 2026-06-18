@@ -41,6 +41,8 @@ export interface WeatherAlert {
   active: boolean
 }
 
+export type OverloadAction = 'limit' | 'dismiss'
+
 const AREAS: AreaInfo[] = [
   { id: 'a1', name: '游客中心', icon: '🏛️', x: 25, y: 70, currentCount: 320, capacity: 500, category: '服务' },
   { id: 'a2', name: '检票口', icon: '🎫', x: 45, y: 65, currentCount: 180, capacity: 200, category: '入口' },
@@ -130,11 +132,13 @@ export function useMonitorData() {
   const currentTime = ref(new Date())
   const overloadModal = reactive({
     visible: false,
+    areaId: '',
     areaName: '',
     currentCount: 0,
     capacity: 0,
     suggestion: '',
   })
+  const dismissedOverloadAreas = reactive<Set<string>>(new Set())
 
   const overloadedAreas = computed(() =>
     areas.filter(a => getSaturation(a) === '超载')
@@ -156,10 +160,9 @@ export function useMonitorData() {
     return max.hour
   })
 
-  const totalInPark = computed(() => {
-    if (!flowData.value.length) return 0
-    return flowData.value[flowData.value.length - 1].inParkCount
-  })
+  const totalInPark = computed(() =>
+    Math.round(areas.reduce((sum, a) => sum + a.currentCount, 0))
+  )
 
   let timer: ReturnType<typeof setInterval> | null = null
   let clockTimer: ReturnType<typeof setInterval> | null = null
@@ -180,14 +183,25 @@ export function useMonitorData() {
       p.remaining = Math.max(0, Math.min(p.total, p.remaining + delta))
     })
 
+    cleanupDismissedAreas()
     checkOverload()
   }
 
+  function cleanupDismissedAreas() {
+    const currentOverloadedIds = new Set(overloadedAreas.value.map(a => a.id))
+    for (const id of Array.from(dismissedOverloadAreas)) {
+      if (!currentOverloadedIds.has(id)) {
+        dismissedOverloadAreas.delete(id)
+      }
+    }
+  }
+
   function checkOverload() {
-    const overloaded = overloadedAreas.value
+    const overloaded = overloadedAreas.value.filter(a => !dismissedOverloadAreas.has(a.id))
     if (overloaded.length > 0 && !overloadModal.visible) {
       const area = overloaded[0]
       overloadModal.visible = true
+      overloadModal.areaId = area.id
       overloadModal.areaName = area.name
       overloadModal.currentCount = Math.round(area.currentCount)
       overloadModal.capacity = area.capacity
@@ -202,8 +216,13 @@ export function useMonitorData() {
     return '其他区域'
   }
 
-  function closeOverloadModal() {
+  function closeOverloadModal(action: OverloadAction = 'dismiss') {
+    const areaId = overloadModal.areaId
     overloadModal.visible = false
+    overloadModal.areaId = ''
+    if (action === 'dismiss' && areaId) {
+      dismissedOverloadAreas.add(areaId)
+    }
   }
 
   function dismissWeatherAlert(index: number) {
