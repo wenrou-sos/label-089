@@ -104,14 +104,8 @@ function generateFlowData(seed?: number): FlowDataPoint[] {
   return data
 }
 
-function generateYesterdayFlowData(todayData: FlowDataPoint[]): FlowDataPoint[] {
-  return todayData.map(d => {
-    const factor = 0.75 + Math.random() * 0.5
-    const enterCount = Math.round(d.enterCount * factor)
-    const exitCount = Math.round(d.exitCount * (0.8 + Math.random() * 0.4))
-    const inParkCount = Math.max(0, Math.round(d.inParkCount * (0.7 + Math.random() * 0.55)))
-    return { hour: d.hour, enterCount, exitCount, inParkCount }
-  })
+function generateYesterdayFlowData(): FlowDataPoint[] {
+  return generateFlowData(42)
 }
 
 const WEATHER_ALERTS: WeatherAlert[] = [
@@ -146,7 +140,7 @@ export function useMonitorData() {
   const queues = reactive<QueueInfo[]>(QUEUES.map(q => ({ ...q })))
   const parking = reactive<ParkingLot[]>(PARKING.map(p => ({ ...p })))
   const flowData = ref<FlowDataPoint[]>(generateFlowData())
-  const yesterdayFlowData = ref<FlowDataPoint[]>(generateYesterdayFlowData(flowData.value))
+  const yesterdayFlowData = ref<FlowDataPoint[]>(generateYesterdayFlowData())
   const weatherAlerts = reactive<WeatherAlert[]>(WEATHER_ALERTS.map(w => ({ ...w })))
   const currentTime = ref(new Date())
   const overloadModal = reactive({

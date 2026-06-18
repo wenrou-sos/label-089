@@ -120,8 +120,10 @@ function renderChart() {
     )
   }
 
+  const todaySeriesName = showYesterday.value ? '园内总人数（今日）' : '园内总人数'
+
   series.push({
-    name: '园内总人数（今日）',
+    name: todaySeriesName,
     type: 'line',
     yAxisIndex: 1,
     data: inParkData,
